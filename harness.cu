@@ -18,9 +18,9 @@ __global__ void ref_matmul(const float* A, const float* B, float* C, int N) {
     }
 }
 
-#define CK(x) do { cudaError_t e = (x); if (e != cudaSuccess) { \
-    printf("{\"ok\":false,\"error\":\"%s\"}\n", cudaGetErrorString(e)); return 1; } } while (0)
-
+#define CK(x) do { cudaError_t err_ = (x); if (err_ != cudaSuccess) { \
+    printf("{\"ok\":false,\"error\":\"%s\"}\n", cudaGetErrorString(err_)); return 1; } } while (0)
+    
 int main(int argc, char** argv) {
     int N = argc > 1 ? atoi(argv[1]) : 1024;
     size_t bytes = (size_t)N * N * sizeof(float);
