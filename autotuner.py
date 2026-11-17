@@ -107,7 +107,7 @@ def main():
         for _ in range(args.variants):
             vid += 1
             msg = client.messages.create(
-                model=MODEL, max_tokens=4000, temperature=1.0, system=SYSTEM,
+                model=MODEL, max_tokens=4000, system=SYSTEM,
                 messages=[{"role": "user", "content": build_prompt(history, best)}],
             )
             text = msg.content[0].text
