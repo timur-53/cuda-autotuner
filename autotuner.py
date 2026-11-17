@@ -110,7 +110,7 @@ def main():
                 model=MODEL, max_tokens=4000, system=SYSTEM,
                 messages=[{"role": "user", "content": build_prompt(history, best)}],
             )
-            text = msg.content[0].text
+            text = "".join(b.text for b in msg.content if b.type == "text")
             code = extract_code(text)
             if not code:
                 continue
