@@ -9,9 +9,9 @@ results (timings, compile errors, wrong answers) back into the next prompt.
 
 | Kernel | GPU | Baseline | Best | Speedup |
 |--------|-----|----------|------|---------|
-| Matmul 1024x1024 (FP32) | Tesla T4 | 5.84 ms / 367 GFLOPS | 0.748 ms / 2,870 GFLOPS | **7.8x** |
+| Matmul 1024x1024 (FP32) | Tesla T4 | [BASELINE_MS] ms / [BASELINE_GFLOPS] GFLOPS | 0.687 ms / 3,125 GFLOPS | **[SPEEDUP]x** |
 
-Setup for this run: 2 iterations x 2 candidates per iteration.
+Best of several runs. Baseline and best are measured on the same T4.
 The winning kernel is in [`results/best.cu`](results/best.cu) and every attempt
 (including rejected ones) is logged in [`results/log.jsonl`](results/log.jsonl).
 
@@ -29,10 +29,16 @@ or correctness.
 
 ## What the LLM discovered
 
-- Shared-memory tiling combined with register blocking (each thread computes
-  multiple outputs).
-- Vectorized `float4` global-to-shared loads.
-- A larger 64x128 output tile with 128 threads per block.
+The winning kernel (`results/best.cu`) combines several classic GEMM techniques:
+
+- **Shared-memory tiling:** each block computes a 128x64 output tile, staging
+  16-wide slices of A and B in shared memory.
+- **Register blocking:** each of the 256 threads computes an 8x4 patch of
+  outputs, reusing every loaded value many times.
+- **Double buffering:** two shared-memory buffers let the next tile load while the
+  current one is being computed.
+- **Vectorized `float4` loads** from global memory, used when N is a multiple of 128.
+- **A bounds-checked fallback path** for other sizes, selected in `launch()`.
 
 ## Run it
 
@@ -51,8 +57,9 @@ Requires an NVIDIA GPU and the CUDA toolkit. Developed on Google Colab (Tesla T4
 
 ## Limitations and next steps
 
-- Correctness is currently verified at N=1024 only. Next: test additional sizes
-  (e.g. N=1000, 1537) to catch tile-boundary bugs.
+- Correctness is currently verified at N=1024 only, which exercises the fast
+  path. The bounds-checked fallback (N not a multiple of 128) is untested. Next:
+  test additional sizes (e.g. N=1000, 1537).
 - One kernel type so far (matmul). Next: reduction, softmax, transpose.
 - Next: `compute-sanitizer` checks for memory errors and races, a cuBLAS
   comparison, and a Triton backend.
